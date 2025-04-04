@@ -1,140 +1,109 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { Editor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
-import { WebsocketProvider } from 'y-websocket'
-import * as Y from 'yjs'
+import { useState } from 'react'
+import CollaborativeEditor from '@/components/CollaborativeEditor'
 
-interface GroupMember {
-  id: string
-  name: string
-  avatar: string
-}
-
-export default function GroupPage() {
-  const params = useParams()
-  const groupId = params.id as string
-  const [editor, setEditor] = useState<Editor | null>(null)
-  const [members, setMembers] = useState<GroupMember[]>([])
-
-  useEffect(() => {
-    // Create a new Y.Doc
-    const ydoc = new Y.Doc()
-    
-    // Initialize the WebSocket provider
-    const provider = new WebsocketProvider(
-      'ws://localhost:1234', // Replace with your WebSocket server
-      `group-${groupId}`,
-      ydoc
-    )
-
-    // Initialize the editor with collaboration features
-    const editorInstance = new Editor({
-      extensions: [
-        StarterKit,
-        Collaboration.configure({
-          document: ydoc,
-        }),
-        CollaborationCursor.configure({
-          provider,
-          user: {
-            name: 'Current User', // Replace with actual user name
-            color: '#f783ac',
-          },
-        }),
-      ],
-    })
-
-    setEditor(editorInstance)
-
-    // Mock members data - replace with actual data from Supabase
-    setMembers([
-      { id: '1', name: 'John Doe', avatar: 'https://i.pravatar.cc/150?img=1' },
-      { id: '2', name: 'Jane Smith', avatar: 'https://i.pravatar.cc/150?img=2' },
-    ])
-
-    return () => {
-      editorInstance.destroy()
-      provider.destroy()
-      ydoc.destroy()
-    }
-  }, [groupId])
+export default function GroupPage({ params }: { params: { id: string } }) {
+  const [activeNote, setActiveNote] = useState<string | null>(null)
+  const [folders, setFolders] = useState([
+    { id: '1', name: 'Lecture Notes', notes: [
+      { id: '1-1', title: 'Week 1: Introduction' },
+      { id: '1-2', title: 'Week 2: Basic Concepts' }
+    ]},
+    { id: '2', name: 'Assignments', notes: [
+      { id: '2-1', title: 'Homework 1' },
+      { id: '2-2', title: 'Project Proposal' }
+    ]}
+  ])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Group Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">CS101 Study Group</h1>
-              <p className="mt-1 text-sm text-gray-500">Introduction to Computer Science</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex -space-x-2">
-                {members.map((member) => (
-                  <img
-                    key={member.id}
-                    className="w-8 h-8 rounded-full border-2 border-white"
-                    src={member.avatar}
-                    alt={member.name}
-                    title={member.name}
-                  />
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-100 p-4">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-2">Notes</h2>
+          <button className="w-full bg-blue-500 text-white px-4 py-2 rounded mb-2">
+            New Note
+          </button>
+          <button className="w-full bg-gray-200 px-4 py-2 rounded">
+            New Folder
+          </button>
+        </div>
+        
+        {/* Folders and Notes */}
+        <div className="space-y-4">
+          {folders.map(folder => (
+            <div key={folder.id} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">{folder.name}</h3>
+                <button className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              <div className="pl-4 space-y-1">
+                {folder.notes.map(note => (
+                  <button
+                    key={note.id}
+                    className={`w-full text-left px-2 py-1 rounded hover:bg-gray-200 ${
+                      activeNote === note.id ? 'bg-blue-100' : ''
+                    }`}
+                    onClick={() => setActiveNote(note.id)}
+                  >
+                    {note.title}
+                  </button>
                 ))}
               </div>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Invite Members
-              </button>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Notes Section */}
-            <div className="lg:col-span-2">
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Collaborative Notes</h2>
-                <div className="prose max-w-none">
-                  {editor && (
-                    <div className="border rounded-lg p-4 min-h-[400px]">
-                      {/* Editor content will be rendered here */}
-                    </div>
-                  )}
-                </div>
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Editor Section */}
+        <div className="flex-1 p-4 overflow-auto">
+          {activeNote ? (
+            <CollaborativeEditor groupId={params.id} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-gray-500">
+              Select a note to start editing
             </div>
+          )}
+        </div>
 
-            {/* Resources Section */}
-            <div>
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Shared Resources</h2>
-                <div className="space-y-4">
-                  <button className="w-full bg-gray-50 border border-gray-300 rounded-lg p-4 text-left hover:bg-gray-100">
-                    <div className="flex items-center">
-                      <svg
-                        className="w-6 h-6 text-gray-400 mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      <span className="text-gray-700">Upload New Resource</span>
-                    </div>
-                  </button>
-                  {/* Resource list will go here */}
-                </div>
+        {/* Calendar Section */}
+        <div className="h-64 border-t p-4">
+          <h2 className="text-lg font-semibold mb-4">Group Calendar</h2>
+          <div className="grid grid-cols-7 gap-1">
+            {/* Calendar Header */}
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-center font-medium text-sm">
+                {day}
               </div>
-            </div>
+            ))}
+            
+            {/* Calendar Days */}
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-16 border rounded p-1 text-sm"
+              >
+                <div className="text-right">{i + 1}</div>
+                {/* Example events */}
+                {i === 5 && (
+                  <div className="text-xs bg-blue-100 text-blue-800 rounded px-1 truncate">
+                    Study Session
+                  </div>
+                )}
+                {i === 12 && (
+                  <div className="text-xs bg-green-100 text-green-800 rounded px-1 truncate">
+                    Assignment Due
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
