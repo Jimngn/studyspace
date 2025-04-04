@@ -23,16 +23,23 @@ export default function Dashboard() {
   const studyGroups: StudyGroup[] = [
     {
       id: '1',
-      name: 'CS101 Study Group',
-      course: 'Introduction to Computer Science',
+      name: 'COMP110 Study Group',
+      course: 'COMP110-01',
       members: 5,
       lastActive: '2 hours ago',
     },
     {
       id: '2',
-      name: 'Math Study Group',
-      course: 'Calculus II',
+      name: 'Calc Study Group',
+      course: 'MATH232-08',
       members: 8,
+      lastActive: '1 day ago',
+    },
+    {
+      id: '3',
+      name: 'Disecting the frog',
+      course: 'BIO103-05L',
+      members: 10,
       lastActive: '1 day ago',
     },
   ]
